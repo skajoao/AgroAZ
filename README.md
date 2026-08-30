@@ -23,7 +23,7 @@ Esta é a **primeira versão funcional** do projeto.
 
 ### 🏠 Dashboard
 
-![Dashboard](screenshots/dashboard.jpeg)
+![Dashboard](screenshots/Dashboard.jpeg)
 
 ### 🌱 Lista de Talhões
 
