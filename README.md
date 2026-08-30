@@ -1,50 +1,71 @@
-# Welcome to your Expo app 👋
+# 🌱 AgroAZ
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplicativo mobile para **gerenciamento de talhões e operações agrícolas**, desenvolvido como projeto de estudo e aplicação prática de conceitos de Engenharia de Software.
 
-## Get started
+## 📱 Sobre o projeto
 
-1. Install dependencies
+O **AgroAZ** foi desenvolvido para facilitar o acompanhamento das operações realizadas em talhões agrícolas, permitindo registrar informações sobre áreas, insumos, aplicações e produção.
 
-   ```bash
-   npm install
-   ```
+Esta é a **primeira versão funcional** do projeto.
 
-2. Start the app
+## 🚀 Funcionalidades
 
-   ```bash
-   npx expo start
-   ```
+* 🌱 Cadastro e gerenciamento de talhões
+* 📐 Controle da área cadastrada
+* 📊 Controle de área produzida e área restante
+* 🧪 Gerenciamento de insumos
+* 🚁 Registro de aplicações de insumos
+* 📋 Histórico de produções
+* ✅ Atualização automática do status do talhão
+* 💾 Armazenamento local dos dados
 
-In the output, you'll find options to open the app in a
+## 🛠️ Tecnologias utilizadas
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+* **React Native**
+* **Expo**
+* **TypeScript**
+* **SQLite**
+* **Expo Router**
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## 🗂️ Estrutura do projeto
 
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```text
+AgroAZ/
+├── app/
+├── assets/
+├── components/
+├── constants/
+├── database/
+├── ...
+├── package.json
+└── README.md
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## 💾 Banco de dados
 
-## Learn more
+O aplicativo utiliza **SQLite** para armazenamento local.
 
-To learn more about developing your project with Expo, look at the following resources:
+Entre as principais entidades utilizadas estão:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+* `talhoes`
+* `insumos`
+* `aplicacoes`
+* `producoes`
 
-## Join the community
+O banco é inicializado localmente no dispositivo, permitindo que o aplicativo funcione sem depender de um servidor externo para o armazenamento dessas informações.
 
-Join our community of developers creating universal apps.
+## 🎯 Objetivo
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+O projeto tem como objetivo colocar em prática conhecimentos adquiridos durante minha formação em **Engenharia de Software**, explorando desenvolvimento mobile, persistência de dados, organização de componentes e construção de interfaces.
+
+O AgroAZ continuará recebendo melhorias e novas funcionalidades conforme o desenvolvimento do projeto avançar.
+
+## 👨‍💻 Desenvolvedor
+
+**João Vitor Gonçalves**
+
+Projeto desenvolvido para fins de aprendizado e desenvolvimento profissional.
+
+---
+
+⭐ Se você gostou do projeto, considere deixar uma estrela no repositório.
