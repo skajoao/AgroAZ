@@ -1,6 +1,6 @@
 # 🌱 AgroAZ
 
-Aplicativo mobile para **gerenciamento de talhões e operações agrícolas**, desenvolvido como projeto de estudo e aplicação prática de conceitos de Engenharia de Software.
+Aplicativo mobile para **gerenciamento de talhões e operações agrícolas**, desenvolvido com React Native e Expo.
 
 ## 📱 Sobre o projeto
 
@@ -16,8 +16,22 @@ Esta é a **primeira versão funcional** do projeto.
 * 🧪 Gerenciamento de insumos
 * 🚁 Registro de aplicações de insumos
 * 📋 Histórico de produções
-* ✅ Atualização automática do status do talhão
-* 💾 Armazenamento local dos dados
+* ✅ Atualização automática do status dos talhões
+* 💾 Armazenamento local dos dados com SQLite
+
+## 📸 Screenshots
+
+### 🏠 Dashboard
+
+![Dashboard](screenshots/dashboard.jpeg)
+
+### 🌱 Lista de Talhões
+
+![Lista de Talhões](screenshots/listaTalhoes.jpeg)
+
+### 📋 Gerenciamento do Talhão
+
+![Gerenciamento do Talhão](screenshots/adminTalhao.jpeg)
 
 ## 🛠️ Tecnologias utilizadas
 
@@ -27,32 +41,18 @@ Esta é a **primeira versão funcional** do projeto.
 * **SQLite**
 * **Expo Router**
 
-## 🗂️ Estrutura do projeto
-
-```text
-AgroAZ/
-├── app/
-├── assets/
-├── components/
-├── constants/
-├── database/
-├── ...
-├── package.json
-└── README.md
-```
-
 ## 💾 Banco de dados
 
-O aplicativo utiliza **SQLite** para armazenamento local.
+O aplicativo utiliza **SQLite** para armazenamento local dos dados.
 
-Entre as principais entidades utilizadas estão:
+Principais tabelas:
 
-* `talhoes`
-* `insumos`
-* `aplicacoes`
-* `producoes`
-
-O banco é inicializado localmente no dispositivo, permitindo que o aplicativo funcione sem depender de um servidor externo para o armazenamento dessas informações.
+```text
+talhoes
+insumos
+aplicacoes
+producoes
+```
 
 ## 🎯 Objetivo
 
