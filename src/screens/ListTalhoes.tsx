@@ -64,6 +64,7 @@ export default function ListTalhoes() {
         )}
         <Button
           title="Cadastrar talhão"
+          color={Colors.green}
           onPress={() => {
             router.push("/addTalhaoRoute");
           }}
@@ -131,6 +132,7 @@ const styles = StyleSheet.create({
 
   list: {
     flex: 1,
+    marginBottom:30
   },
 
   title: {

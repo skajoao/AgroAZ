@@ -26,7 +26,7 @@ export default function AdminTalhao() {
 
   const [insumosSelecionados, setInsumosSelecionados] = useState<string[]>([]);
   const [aplicacoes, setAplicacoes] = useState<any[]>([]);
-  const [producao, setProducao] = useState<any>(null);
+  const [producao, setProducao] = useState<string>(""); // FIX 2: era null, causava input não-controlado -> controlado
   const [producoes, setProducoes] = useState<any[]>([]);
   const [status, setStatus] = useState<string>("em andamento");
   const [statusColor, setStatusColor] = useState<string>("#f04b4bbf");
@@ -47,39 +47,6 @@ export default function AdminTalhao() {
 
     buscarTalhaoPorId();
   }, [id]);
-
-  //adicionar produção
-  const addProducao = async () => {
-    if (!producao) {
-      Alert.alert("Campo vazio", "Favor preencher o campo de produção");
-      return;
-    }
-
-    if (insumosSelecionados.length == 0) {
-      return;
-    }
-
-    if (producao > areaRestante) {
-      Alert.alert("Erro", "Produção incorreta");
-      return;
-    }
-
-    try {
-      await db.runAsync(
-        `INSERT INTO producoes (_id, talhao_id, areaProduzida, dataProducao) VALUES (?,?,?,?)`,
-        Date.now().toString(),
-        String(id),
-        Number(producao),
-        new Date().toLocaleString(),
-      );
-
-      setProducao("");
-      await buscarProducoes();
-      Alert.alert("Sucesso", "Produção adicionada com sucesso");
-    } catch (err) {
-      console.log(err);
-    }
-  };
 
   //buscar produções
   const buscarProducoes = async () => {
@@ -112,6 +79,9 @@ export default function AdminTalhao() {
       if (!talhao?._id) return;
 
       const novoStatus = areaRestante <= 0 ? "Concluído" : "Em andamento";
+
+      // FIX 6: evita UPDATE desnecessário no banco quando o status não mudou
+      if (novoStatus === status) return;
 
       setStatus(novoStatus);
 
@@ -148,53 +118,6 @@ export default function AdminTalhao() {
     buscarInsumos();
   }, []);
 
-  //adicionar aplicação
-
-  const addAplicacoes = async () => {
-    if (!producao) {
-      Alert.alert("Erro", "Informe a produção");
-      return;
-    }
-
-    if (insumosSelecionados.length === 0) {
-      Alert.alert("Erro", "Selecione pelo menos um insumo");
-      return;
-    }
-
-    if (producao > areaRestante) {
-      Alert.alert(
-        "Erro",
-        "O talhão não possui área suficiente para essa produção",
-      );
-      return;
-    }
-
-    try {
-      for (const insumoId of insumosSelecionados) {
-        const insumo = insumos.find((i) => i._id === insumoId);
-
-        const quantidade = Number(insumo?.recomendIns || 0) * Number(producao);
-
-        await db.runAsync(
-          `INSERT INTO aplicacoes
-        (_id, talhao_id, insumo_id, quantidade, dataAplicacao)
-        VALUES (?,?,?,?,?)`,
-          Date.now().toString() + insumoId,
-          String(id),
-          insumoId,
-          quantidade,
-          new Date().toLocaleString(),
-        );
-      }
-
-      Alert.alert("Sucesso", "Produção adicionada!");
-      setInsumosSelecionados([]);
-      buscarAplicacoes();
-    } catch (err) {
-      console.log(err);
-    }
-  };
-
   //buscar aplicacoes
   const buscarAplicacoes = async () => {
     try {
@@ -211,6 +134,69 @@ export default function AdminTalhao() {
   useEffect(() => {
     buscarAplicacoes();
   }, [id]);
+
+  const inserirProducao = async () => {
+    await db.runAsync(
+      `INSERT INTO producoes (_id, talhao_id, areaProduzida, dataProducao) VALUES (?,?,?,?)`,
+      Date.now().toString(),
+      String(id),
+      Number(producao),
+      new Date().toLocaleString(),
+    );
+    await buscarProducoes();
+  };
+
+  const inserirAplicacoes = async () => {
+    for (const insumoId of insumosSelecionados) {
+      const insumo = insumos.find((i) => i._id === insumoId);
+
+      const quantidade = Number(insumo?.recomendIns || 0) * Number(producao);
+
+      await db.runAsync(
+        `INSERT INTO aplicacoes
+        (_id, talhao_id, insumo_id, quantidade, dataAplicacao)
+        VALUES (?,?,?,?,?)`,
+        Date.now().toString() + insumoId,
+        String(id),
+        insumoId,
+        quantidade,
+        new Date().toLocaleString(),
+      );
+    }
+    await buscarAplicacoes();
+  };
+
+  const registrarProducao = async () => {
+    if (!producao) {
+      Alert.alert("Campo vazio", "Favor preencher o campo de produção");
+      return;
+    }
+
+    if (insumosSelecionados.length === 0) {
+      Alert.alert("Erro", "Selecione pelo menos um insumo");
+      return;
+    }
+
+    if (Number(producao) > areaRestante) {
+      Alert.alert(
+        "Erro",
+        "O talhão não possui área suficiente para essa produção",
+      );
+      return;
+    }
+
+    try {
+      await inserirProducao();
+      await inserirAplicacoes();
+
+      setProducao("");
+      setInsumosSelecionados([]);
+      Alert.alert("Sucesso", "Produção adicionada com sucesso");
+    } catch (err) {
+      console.log(err);
+      Alert.alert("Erro", "Não foi possível registrar a produção");
+    }
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -321,11 +307,11 @@ export default function AdminTalhao() {
               if (total === 0) return null;
 
               return (
-                <View style={styles.sectionContentTextDownContainer}>
-                  <Text
-                    key={insumo._id}
-                    style={[styles.text, { fontWeight: "bold" }]}
-                  >
+                <View
+                  key={insumo._id}
+                  style={styles.sectionContentTextDownContainer}
+                >
+                  <Text style={[styles.text, { fontWeight: "bold" }]}>
                     {insumo.nomeIns}: {total.toFixed(2)} Kg/L
                   </Text>
                   <Text>aplicados</Text>
@@ -394,10 +380,7 @@ export default function AdminTalhao() {
               <Text>Não há insumos, cadastre os insumos primeiro</Text>
             )}
             <Pressable
-              onPress={async () => {
-                await addProducao();
-                await addAplicacoes();
-              }}
+              onPress={registrarProducao}
               style={styles.producaoButton}
             >
               <Text style={styles.producaoButtonText}>Adicionar Produção</Text>

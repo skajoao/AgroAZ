@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "AgroAZ",
-    "slug": "AgroAZ",
+    "slug": "drone-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -55,6 +55,7 @@
       "eas": {
         "projectId": "82c8969f-2aba-4421-8dc5-d15042ce6b45"
       }
-    }
+    },
+    "owner": "joao_vitor_dev"
   }
 }

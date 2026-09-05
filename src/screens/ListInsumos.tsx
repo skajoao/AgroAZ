@@ -69,6 +69,7 @@ export default function ListInsumos() {
         )}
         <Button
           title="Cadastrar Insumo"
+          color={Colors.green}
           onPress={() => {
             router.push("/addInsumoRoute");
           }}
@@ -106,6 +107,7 @@ const styles = StyleSheet.create({
 
   list: {
     flex: 1,
+    marginBottom:30
   },
 
   header:{

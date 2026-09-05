@@ -1,11 +1,14 @@
+import { Colors } from "@/constants/theme";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 
 export default function TabLayout() {
   return (
     <NativeTabs
-      backgroundColor="#fefefe"
-      indicatorColor="#eef1ec"
-      tintColor="#0b0b0b"
+      backgroundColor={Colors.primary}
+      tintColor="#ffffff"
+      disableIndicator
+      
+
     >
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Label>

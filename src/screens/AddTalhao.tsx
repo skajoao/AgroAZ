@@ -1,10 +1,13 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, Button, StyleSheet, Text, View } from "react-native";
+import { Alert, Button, Image, StyleSheet, Text, View } from "react-native";
+
+import Back from "@/components/Back";
 
 import { db } from "@/database/database";
 
 import Input from "@/components/Input";
+import { Colors } from "@/constants/theme";
 
 export default function AddTalhao() {
   const [numeroTalhao, setNumero] = useState<any>(null);
@@ -43,22 +46,20 @@ export default function AddTalhao() {
     setNumero("");
     setArea("");
     Alert.alert("Sucesso", "Talhão salvo com sucesso");
-
   };
   return (
     <View style={styles.addTalhaoContainer}>
       <View style={styles.navigation}>
-        <Button
-          title="Voltar"
-          onPress={() => {
-            router.back();
-          }}
-        ></Button>
+        <Back />
       </View>
       <View style={styles.content}>
-        <Text style={{ marginBottom: 50, fontSize: 20 }}>Adicionar talhão</Text>
+        <View style={styles.titleContainer}>
+          <Image source={require("@/assets/talhao.png")} style={styles.icon} />
+          <Text style={styles.title}>Adicionar talhão</Text>
+        </View>
         <Input
           label="Projeto:"
+          placeholder="ex: Fazenda Santa Bárbara"
           value={projeto}
           onChangeText={setProjeto}
         ></Input>
@@ -76,7 +77,11 @@ export default function AddTalhao() {
         ></Input>
         {res && <Text>{res}</Text>}
         <View style={styles.submit}>
-          <Button title="Adicionar" onPress={addTalhao}></Button>
+          <Button
+            title="Adicionar"
+            onPress={addTalhao}
+            color={Colors.green}
+          ></Button>
         </View>
       </View>
     </View>
@@ -88,14 +93,22 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 15,
   },
-  submit: {
-    marginTop: 15,
-  },
+  submit: {},
   navigation: {
     justifyContent: "flex-start",
     marginTop: 20,
     width: 90,
   },
+  titleContainer: {
+    alignItems: "center",
+  },
+
+  icon: {
+    width: 25,
+    height: 25,
+    resizeMode: "contain",
+  },
+
   content: {
     flex: 1,
     alignItems: "center",
@@ -104,11 +117,20 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 14,
     marginTop: 10,
+    borderWidth: 1,
+    borderColor: Colors.primary,
 
     shadowColor: "#000",
     shadowOpacity: 0.08,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
     elevation: 3,
+    gap: 10,
+  },
+
+  title: {
+    color: Colors.primary,
+    fontSize: 25,
+    fontWeight: "bold",
   },
 });

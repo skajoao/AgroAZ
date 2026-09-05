@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, Button, StyleSheet, Text, View } from "react-native";
+import { Alert, Button, Image, StyleSheet, Text, View } from "react-native";
 
 import { db } from "@/database/database";
 
@@ -45,32 +45,39 @@ export default function AddInsumo() {
     setTipo("");
     setRecomend("");
     Alert.alert("Sucesso", "Insumo cadastrado com sucesso");
-
-  
   };
   return (
-      <View style={styles.addInsumoContainer}>
+    <View style={styles.addInsumoContainer}>
+      <View style={styles.navigation}>
         <Back />
-        <View style={styles.content}>
-          <Text style={{ marginBottom: 50, fontSize: 20 }}>
-            Adicionar Insumo
-          </Text>
-          <Input label="Nome:" value={nome} onChangeText={setNome} />
-          <Input
-            label="Tipo (ex: Pós Emergente):"
-            value={tipo}
-            onChangeText={setTipo}
-          />
-          <Input
-            label="Recomendação (Kg ou L/Ha):"
-            value={recomend}
-            onChangeText={setRecomend}
-          />
-          <View style={styles.submit}>
-            <Button title="Adicionar insumo" onPress={addInsumo}></Button>
-          </View>
+      </View>
+      <View style={styles.content}>
+        <View style={styles.titleContainer}>
+          <Image source={require("@/assets/insumos.png")} style={styles.icon} />
+          <Text style={styles.title}>Adicionar Insumo</Text>
+        </View>
+        <Input label="Nome:" value={nome} onChangeText={setNome} />
+        <Input
+          label="Tipo:"
+          placeholder="ex: pós emergente"
+          value={tipo}
+          onChangeText={setTipo}
+        />
+        <Input
+          label="Recomendação:"
+          placeholder="(Kg ou L/Ha)"
+          value={recomend}
+          onChangeText={setRecomend}
+        />
+        <View style={styles.submit}>
+          <Button
+            title="Adicionar insumo"
+            onPress={addInsumo}
+            color={Colors.green}
+          ></Button>
         </View>
       </View>
+    </View>
   );
 }
 
@@ -79,6 +86,23 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 15,
   },
+
+  navigation: {
+    justifyContent: "flex-start",
+    marginTop: 20,
+    width: 90,
+  },
+
+  titleContainer: {
+    alignItems: "center",
+  },
+
+  icon: {
+    width: 25,
+    height: 25,
+    resizeMode: "contain",
+  },
+
   content: {
     flex: 1,
     alignItems: "center",
@@ -93,6 +117,13 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
     elevation: 3,
+    gap: 10,
+  },
+
+  title: {
+    color: Colors.primary,
+    fontSize: 25,
+    fontWeight: "bold",
   },
   submit: {},
 });
