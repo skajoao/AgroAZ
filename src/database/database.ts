@@ -27,7 +27,8 @@ export async function initDatabase() {
   //aplicacoes
   await db.execAsync(`CREATE TABLE IF NOT EXISTS aplicacoes (
   _id TEXT PRIMARY KEY,
-  talhao_id TEXT,
+  talhao_id,
+  producao_id TEXT,
   insumo_id TEXT,
   quantidade REAL,
   dataAplicacao TEXT
@@ -37,8 +38,9 @@ export async function initDatabase() {
   //produções
   await db.execAsync(`CREATE TABLE IF NOT EXISTS producoes (
   _id TEXT PRIMARY KEY,
+  producao_id TEXT,
   talhao_id TEXT,
   areaProduzida REAL,
-  dataProducao TEXT
+  dataProducao TEXT 
 );`)
 }

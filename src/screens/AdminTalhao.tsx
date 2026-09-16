@@ -19,6 +19,8 @@ import Input from "@/components/Input";
 
 import { Colors } from "@/constants/theme";
 
+import { Ionicons } from "@expo/vector-icons";
+
 export default function AdminTalhao() {
   const { id } = useLocalSearchParams();
   const [talhao, setTalhao] = useState<any>(null);
@@ -29,7 +31,7 @@ export default function AdminTalhao() {
   const [producao, setProducao] = useState<string>(""); // FIX 2: era null, causava input não-controlado -> controlado
   const [producoes, setProducoes] = useState<any[]>([]);
   const [status, setStatus] = useState<string>("em andamento");
-  const [statusColor, setStatusColor] = useState<string>("#f04b4bbf");
+  const [statusColor, setStatusColor] = useState<string>("#e91515");
 
   //buscar talhao
   useEffect(() => {
@@ -88,7 +90,7 @@ export default function AdminTalhao() {
       if (novoStatus === "Concluído") {
         setStatusColor("#4ca200");
       } else {
-        setStatusColor("#f04b4bbf");
+        setStatusColor("#e91515");
       }
 
       try {
@@ -136,17 +138,22 @@ export default function AdminTalhao() {
   }, [id]);
 
   const inserirProducao = async () => {
+    const producaoId = Date.now().toString();
+
     await db.runAsync(
-      `INSERT INTO producoes (_id, talhao_id, areaProduzida, dataProducao) VALUES (?,?,?,?)`,
-      Date.now().toString(),
+      `INSERT INTO producoes
+    (_id, talhao_id, areaProduzida, dataProducao)
+    VALUES (?,?,?,?)`,
+      producaoId,
       String(id),
       Number(producao),
       new Date().toLocaleString(),
     );
-    await buscarProducoes();
+
+    return producaoId;
   };
 
-  const inserirAplicacoes = async () => {
+  const inserirAplicacoes = async (producaoId: string) => {
     for (const insumoId of insumosSelecionados) {
       const insumo = insumos.find((i) => i._id === insumoId);
 
@@ -154,15 +161,17 @@ export default function AdminTalhao() {
 
       await db.runAsync(
         `INSERT INTO aplicacoes
-        (_id, talhao_id, insumo_id, quantidade, dataAplicacao)
-        VALUES (?,?,?,?,?)`,
+      (_id, talhao_id, producao_id, insumo_id, quantidade, dataAplicacao)
+      VALUES (?,?,?,?,?,?)`,
         Date.now().toString() + insumoId,
         String(id),
+        producaoId,
         insumoId,
         quantidade,
         new Date().toLocaleString(),
       );
     }
+
     await buscarAplicacoes();
   };
 
@@ -186,11 +195,15 @@ export default function AdminTalhao() {
     }
 
     try {
-      await inserirProducao();
-      await inserirAplicacoes();
+      const producaoId = await inserirProducao();
+
+      await inserirAplicacoes(producaoId);
+
+      await buscarProducoes();
 
       setProducao("");
       setInsumosSelecionados([]);
+
       Alert.alert("Sucesso", "Produção adicionada com sucesso");
     } catch (err) {
       console.log(err);
@@ -370,9 +383,17 @@ export default function AdminTalhao() {
                       pressed && styles.insumoButtonPressed,
                     ]}
                   >
-                    <Text style={styles.insumoButtonText}>
-                      {selecionado ? "✅" : "🟩"} {insumo.nomeIns}
-                    </Text>
+                    <View style={styles.insumoButtonContent}>
+                      <Ionicons
+                        name={selecionado ? "checkbox" : "square-outline"}
+                        size={22}
+                        color={Colors.primary}
+                      />
+
+                      <Text style={styles.insumoButtonText}>
+                        {insumo.nomeIns}
+                      </Text>
+                    </View>
                   </Pressable>
                 );
               })
@@ -419,7 +440,7 @@ export default function AdminTalhao() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    padding: 10,
   },
 
   header: {
@@ -585,6 +606,12 @@ const styles = StyleSheet.create({
   insumoButtonText: {
     color: Colors.primary,
     fontWeight: "bold",
+  },
+
+  insumoButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
 
   producaoButton: {

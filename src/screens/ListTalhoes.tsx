@@ -37,6 +37,7 @@ export default function ListTalhoes() {
   //deletar talhao
   const deletarTalhao = async (id: string) => {
     try {
+      await db.runAsync(`DELETE FROM producoes WHERE talhao_id = ?`, id);
       await db.runAsync(`DELETE FROM talhoes WHERE _id = ?`, id);
     } catch (err) {
       console.log(err);
@@ -54,7 +55,7 @@ export default function ListTalhoes() {
             source={require("@/assets/talhao2.png")}
             style={[styles.icon, { justifyContent: "center" }]}
           />
-          <Text style={styles.title}>Meus talhões</Text>
+          <Text style={styles.title}>Talhões</Text>
         </View>
 
         {talhoes.length === 0 && (
@@ -116,12 +117,12 @@ export default function ListTalhoes() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    padding: 10,
     marginTop: 50,
   },
 
-  header:{
-    alignItems:"center"
+  header: {
+    alignItems: "center",
   },
 
   icon: {
@@ -132,7 +133,7 @@ const styles = StyleSheet.create({
 
   list: {
     flex: 1,
-    marginBottom:30
+    marginBottom: 30,
   },
 
   title: {

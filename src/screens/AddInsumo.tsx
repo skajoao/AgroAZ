@@ -84,7 +84,7 @@ export default function AddInsumo() {
 const styles = StyleSheet.create({
   addInsumoContainer: {
     flex: 1,
-    padding: 15,
+    padding: 10,
   },
 
   navigation: {

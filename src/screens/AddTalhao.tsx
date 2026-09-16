@@ -91,7 +91,7 @@ export default function AddTalhao() {
 const styles = StyleSheet.create({
   addTalhaoContainer: {
     flex: 1,
-    padding: 15,
+    padding: 10,
   },
   submit: {},
   navigation: {

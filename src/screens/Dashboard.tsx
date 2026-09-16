@@ -2,6 +2,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import {
   FlatList,
   Image,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -17,10 +18,11 @@ export default function Dashboard() {
   const router = useRouter();
 
   const [talhoes, setTalhoes] = useState<any[]>([]);
-  const [producoes, setProducoes] = useState<any[]>([]);
+  const [aplicacoes, setAplicacoes] = useState<any[]>([]);
   const [talhoesConcluidos, setTalhoesConcluidos] = useState<any[]>([]);
-  const [areaTotal, setAreaTotal] = useState<Number>(0)
-  const [areaConcluida, setAreaConcluida] = useState<Number>(0)
+  const [areaTotal, setAreaTotal] = useState<Number>(0);
+  const [areaConcluida, setAreaConcluida] = useState<Number>(0);
+  const [mostrarTodas, setMostrarTodas] = useState(false);
 
   //criar banco de dados (se não houver)
   useEffect(() => {
@@ -62,13 +64,15 @@ export default function Dashboard() {
   );
 
   const buscarAreaTotal = async () => {
-    try{
-      const data = await db.getFirstAsync<{areaTotal: number}>(`SELECT SUM(areaTalhao) AS areaTotal FROM talhoes`)
-      setAreaTotal(data?.areaTotal || 0)
-    }catch(err){
-      console.log(err)
+    try {
+      const data = await db.getFirstAsync<{ areaTotal: number }>(
+        `SELECT SUM(areaTalhao) AS areaTotal FROM talhoes`,
+      );
+      setAreaTotal(data?.areaTotal || 0);
+    } catch (err) {
+      console.log(err);
     }
-  }
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -79,33 +83,53 @@ export default function Dashboard() {
   //buscar area concluída
 
   const buscarAreaConcluida = async () => {
-    try{
-      const data = await db.getFirstAsync<{areaConcluida: number}>(`SELECT SUM(areaProduzida) AS areaConcluida FROM producoes`)
-      setAreaConcluida(data?.areaConcluida || 0)
-    }catch(err){
-      console.log(err)
+    try {
+      const data = await db.getFirstAsync<{ areaConcluida: number }>(
+        `SELECT SUM(areaProduzida) AS areaConcluida FROM producoes`,
+      );
+      setAreaConcluida(data?.areaConcluida || 0);
+    } catch (err) {
+      console.log(err);
     }
-  }
+  };
 
   useFocusEffect(
     useCallback(() => {
       buscarAreaConcluida();
     }, []),
   );
-  
 
   //buscar aplicacoes
 
   const buscarAplicacoes = async () => {
     try {
-      const data = await db.getAllAsync(
-        `SELECT producoes._id, talhoes.projetoTalhao, talhoes.numeroTalhao,
-          producoes.areaProduzida, producoes.dataProducao FROM producoes INNER JOIN talhoes
-          ON producoes.talhao_id = talhoes._id ORDER BY producoes.dataProducao DESC`,
-      );
-      setProducoes(data as any[]);
+      const data = await db.getAllAsync(`
+      SELECT
+        producoes._id,
+        producoes.areaProduzida,
+        producoes.dataProducao,
+        talhoes.projetoTalhao,
+        talhoes.numeroTalhao,
+        GROUP_CONCAT(DISTINCT insumos.nomeIns) AS insumos
+      FROM producoes
+      INNER JOIN talhoes
+        ON producoes.talhao_id = talhoes._id
+      LEFT JOIN aplicacoes
+        ON producoes._id = aplicacoes.producao_id
+      LEFT JOIN insumos
+        ON aplicacoes.insumo_id = insumos._id
+      GROUP BY
+        producoes._id,
+        producoes.areaProduzida,
+        producoes.dataProducao,
+        talhoes.projetoTalhao,
+        talhoes.numeroTalhao
+      ORDER BY producoes.dataProducao DESC
+    `);
+
+      setAplicacoes(data as any[]);
     } catch (err) {
-      console.log(err);
+      console.log("Erro ao buscar histórico:", err);
     }
   };
 
@@ -228,24 +252,37 @@ export default function Dashboard() {
           </View>
           <View>
             <View style={styles.historicoProd}>
-              {producoes.length > 0 ? (
+              {aplicacoes.length > 0 ? (
                 <FlatList
                   scrollEnabled={false}
-                  data={producoes}
+                  data={mostrarTodas ? aplicacoes : aplicacoes.slice(0, 3)}
                   keyExtractor={(item) => item._id.toString()}
                   renderItem={({ item }) => (
                     <View style={styles.cardProducoes}>
                       <Text style={styles.data}>{item.dataProducao}</Text>
                       <Text>Projeto: {item.projetoTalhao}</Text>
                       <Text>Talhão: {item.numeroTalhao}</Text>
+                      <Text>Insumos: {item.insumos || "Nenhum"}</Text>
                       <Text style={styles.areaProduzida}>
                         {item.areaProduzida} Há
                       </Text>
                     </View>
                   )}
-                ></FlatList>
+                />
               ) : (
                 <Text>Não há produções</Text>
+              )}
+              {aplicacoes.length > 3 && (
+                <Pressable
+                  onPress={() => {
+                    setMostrarTodas(!mostrarTodas);
+                  }}
+                  style={styles.mostrarTodasButton}
+                >
+                  <Text style={styles.mostrarTodasText}>
+                    {mostrarTodas ? "Mostrar menos" : "Mostrar todas"}
+                  </Text>
+                </Pressable>
               )}
             </View>
           </View>
@@ -258,7 +295,7 @@ export default function Dashboard() {
 const styles = StyleSheet.create({
   dashboardContainer: {
     flex: 1,
-    padding: 20,
+    padding: 10,
   },
 
   header: {
@@ -270,7 +307,21 @@ const styles = StyleSheet.create({
   },
 
   titleContainer: {
+    backgroundColor: Colors.secondary,
     alignItems: "center",
+    borderRadius: 16,
+    padding: 10,
+    marginTop: 12,
+    marginBottom: 12,
+
+    shadowColor: "#8a5353",
+    shadowOffset: {
+      width: 0,
+      height: 5,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 10,
   },
 
   title: {
@@ -278,7 +329,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Colors.primary,
     textAlign: "center",
-    marginVertical: 16,
   },
 
   resumoGeral: {
@@ -311,6 +361,7 @@ const styles = StyleSheet.create({
 
   sectionContentContainer: {
     alignItems: "center",
+    justifyContent: "space-between",
   },
 
   sectionResumoContentContainer: {
@@ -325,7 +376,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     gap: 10,
-    padding: 10,
+    padding: 5,
   },
 
   sectionResumoItemIcon: {},
@@ -354,7 +405,7 @@ const styles = StyleSheet.create({
   historicoProd: {},
 
   cardProducoes: {
-    backgroundColor: Colors.background,
+    backgroundColor: "#fefefe",
     padding: 14,
     borderRadius: 14,
     marginTop: 10,
@@ -398,5 +449,17 @@ const styles = StyleSheet.create({
   areaProduzida: {
     fontSize: 14,
     color: "#555",
+  },
+
+  mostrarTodasButton: {
+    marginTop: 12,
+    padding: 10,
+    alignItems: "center",
+  },
+
+  mostrarTodasText: {
+    color: Colors.primary,
+    fontWeight: "bold",
+    fontSize: 15,
   },
 });
