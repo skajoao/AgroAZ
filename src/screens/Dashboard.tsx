@@ -9,10 +9,14 @@ import {
   View,
 } from "react-native";
 
+import * as SecureStore from "expo-secure-store";
+
 import { db, initDatabase } from "../database/database";
 
 import { Colors } from "@/constants/theme";
 import { useCallback, useEffect, useState } from "react";
+
+import Logout from "@/components/Logout";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -23,6 +27,12 @@ export default function Dashboard() {
   const [areaTotal, setAreaTotal] = useState<Number>(0);
   const [areaConcluida, setAreaConcluida] = useState<Number>(0);
   const [mostrarTodas, setMostrarTodas] = useState(false);
+
+  const handleLogout = async () => {
+    await SecureStore.deleteItemAsync("token");
+
+    router.replace("/login");
+  };
 
   //criar banco de dados (se não houver)
   useEffect(() => {
@@ -143,6 +153,7 @@ export default function Dashboard() {
     <ScrollView>
       <View style={styles.dashboardContainer}>
         <View style={styles.header}>
+          <Logout onPress={handleLogout} />
           <View style={styles.titleContainer}>
             <Image
               source={require("@/assets/dashboard.png")}
