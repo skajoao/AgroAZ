@@ -1,19 +1,32 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Button, Image, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import * as SecureStore from "expo-secure-store";
 
 import Input from "@/components/Input";
+import AppButton from "@/components/ui/AppButton";
+import Card from "@/components/ui/Card";
+import Screen from "@/components/ui/Screen";
+import { Colors, Spacing } from "@/constants/theme";
 
 export default function Index() {
   const [email, setEmail] = useState<string>("");
   const [senha, setSenha] = useState<string>("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [mensagem, setMensagem] = useState<string>("");
+  const [carregando, setCarregando] = useState(false);
   const router = useRouter();
 
   const handleLogin = async () => {
+    if (!email.trim() || !senha) {
+      setMensagem("Preencha o email e a senha.");
+      return;
+    }
+
+    setCarregando(true);
+    setMensagem("");
+
     try {
       const response = await fetch(
         `http://${process.env.EXPO_PUBLIC_MYIP}:3000/auth/login`,
@@ -23,108 +36,154 @@ export default function Index() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            email,
-            senha: senha,
+            email: email.trim(),
+            senha,
           }),
         },
       );
 
-      const data = await response.json();
+      const data: {
+        token?: string;
+        message?: string;
+        usuario?: {
+          id: number;
+          nome: string;
+          email: string;
+        };
+      } = await response.json().catch(() => ({}));
 
-      if (response.ok) {
-        await SecureStore.setItemAsync("token", data.token);
-
-        router.replace("/(tabs)");
-      } else {
-        console.log(data.message);
-        setMensagem(data.message);
+      if (!response.ok) {
+        setMensagem(data.message || "Email ou senha inválidos.");
+        return;
       }
 
-      console.log(data);
+      if (!data.token) {
+        setMensagem("O servidor não retornou o token.");
+        return;
+      }
+
+      if (!data.usuario?.id) {
+        setMensagem("O servidor não retornou os dados do usuário.");
+        return;
+      }
+
+      await SecureStore.setItemAsync("token", data.token);
+      await SecureStore.setItemAsync("usuarioId", String(data.usuario.id));
+
+      router.replace("/(tabs)");
+
+      router.replace("/(tabs)");
     } catch (err) {
-      console.error("Erro ao fazer login", err);
+      console.error("Erro ao fazer login:", err);
+      setMensagem("Não foi possível conectar ao servidor.");
+    } finally {
+      setCarregando(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Image style={styles.ilustration} source={require("@/assets/logo.png")} />
+    <Screen keyboard>
+      <View style={styles.container}>
+        <Image style={styles.ilustration} source={require("@/assets/logo.png")} />
+        <Text style={styles.brand}>Talhão360</Text>
+        <Text style={styles.title}>Entrar</Text>
+        <Text style={styles.subtitle}>Acesse sua conta com email e senha.</Text>
 
-      <Text style={styles.title}>Entrar</Text>
-      <Text style={styles.subtitle}>Acesse sua conta com email e senha.</Text>
+        <Card style={styles.card}>
+          {mensagem ? <Text style={styles.mensagem}>{mensagem}</Text> : null}
 
-      <Text style={styles.mensagem}>{mensagem}</Text>
-      <Input
-        label="Digite seu email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-      ></Input>
+          <Input
+            label="Digite seu email"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
 
-      <Input
-        label="Digite sua senha"
-        value={senha}
-        onChangeText={setSenha}
-        keyboardType="default"
-        secureTextEntry={!mostrarSenha}
-      ></Input>
+          <Input
+            label="Digite sua senha"
+            value={senha}
+            onChangeText={setSenha}
+            keyboardType="default"
+            secureTextEntry={!mostrarSenha}
+          />
 
-      <Text
-        onPress={() => {
-          setMostrarSenha(!mostrarSenha);
-        }}
-      >
-        {mostrarSenha ? "ocultar senha" : "mostrar senha"}
-      </Text>
-      <View style={styles.containerSub}>
-        <Button onPress={handleLogin} title="Entrar"></Button>
+          <Pressable
+            onPress={() => {
+              setMostrarSenha(!mostrarSenha);
+            }}
+            style={styles.mostrarSenha}
+          >
+            <Text style={styles.mostrarSenhaText}>
+              {mostrarSenha ? "ocultar senha" : "mostrar senha"}
+            </Text>
+          </Pressable>
+
+          <View style={styles.containerSub}>
+            <AppButton
+              onPress={handleLogin}
+              title={carregando ? "Entrando..." : "Entrar"}
+            />
+          </View>
+        </Card>
       </View>
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FDFDFD",
-    padding: 32,
     alignItems: "center",
-    justifyContent: "center",
+    marginTop:30
   },
   ilustration: {
-    width: 300,
-    height: 300,
+    width: 200,
+    height: 200,
     resizeMode: "contain",
+    marginBottom: Spacing.sm,
+  },
+  brand: {
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 1.4,
+    textTransform: "uppercase",
+    color: Colors.secondary,
+    marginBottom: Spacing.xs,
   },
   title: {
     fontSize: 30,
-    fontWeight: 900,
+    fontWeight: "800",
+    color: Colors.text,
   },
   subtitle: {
-    fontWeight: 500,
-    marginBottom: 10,
+    fontWeight: "500",
+    marginBottom: Spacing.lg,
+    color: Colors.textMuted,
+    textAlign: "center",
   },
-  inputEmail: {
+  card: {
     width: "100%",
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 20,
-  },
-  inputPwd: {
-    width: "100%",
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 20,
+    maxWidth: 420,
   },
   containerSub: {
-    marginTop: 15,
-    width: "50%",
+    marginTop: Spacing.sm,
+    width: "100%",
   },
-  mensagem:{
-    color: "#eb0a0a"
-  }
+  mensagem: {
+    color: Colors.danger,
+    fontWeight: "600",
+    marginBottom: Spacing.md,
+    textAlign: "center",
+  },
+  mostrarSenha: {
+    alignSelf: "flex-end",
+    marginBottom: Spacing.md,
+    marginTop: -4,
+  },
+  mostrarSenhaText: {
+    color: Colors.primary,
+    fontWeight: "600",
+    fontSize: 13,
+  },
 });

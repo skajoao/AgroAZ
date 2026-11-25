@@ -1,10 +1,8 @@
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
-  Button,
+  Alert,
   FlatList,
-  Image,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -12,10 +10,28 @@ import {
 
 import { db } from "@/database/database";
 
-import { Colors } from "@/constants/theme";
+import { Colors, Spacing } from "@/constants/theme";
+
+import { sincronizarTalhoesPendentes } from "@/services/sincronizarTalhoes";
+
+import { baixarTalhoesDoServidor } from "@/services/baixarTalhoesDoServidor";
+
+import { sincronizarTalhoesExcluidos } from "@/services/sincronizarTalhoesExcluidos";
+
+import { baixarProducoesDoServidor } from "@/services/baixarProducoesDoServidor";
+
+import { baixarAplicacoesDoServidor } from "@/services/baixarAplicacoesDoServidor";
+import AppButton from "@/components/ui/AppButton";
+import Card from "@/components/ui/Card";
+import EmptyState from "@/components/ui/EmptyState";
+import LoadingState from "@/components/ui/LoadingState";
+import Screen from "@/components/ui/Screen";
+import ScreenHeader from "@/components/ui/ScreenHeader";
+import StatusBadge from "@/components/ui/StatusBadge";
 
 export default function ListTalhoes() {
   const [talhoes, setTalhoes] = useState<any[]>([]);
+  const [carregando, setCarregando] = useState(true);
 
   const buscarTalhoes = async () => {
     try {
@@ -30,154 +46,184 @@ export default function ListTalhoes() {
 
   useFocusEffect(
     useCallback(() => {
-      buscarTalhoes();
+      const carregarTalhoes = async () => {
+        setCarregando(true);
+
+        try {
+          // 1. Mostra os dados disponíveis localmente
+          await buscarTalhoes();
+
+          // 2. Envia as exclusões pendentes ao servidor
+          await sincronizarTalhoesExcluidos();
+
+          // 3. Envia os talhões pendentes ao servidor
+          await sincronizarTalhoesPendentes();
+
+          // 4. Baixa os talhões que estão no servidor
+          await baixarTalhoesDoServidor();
+
+          // 5. Atualiza a tela
+          await buscarTalhoes();
+
+          // 6. Baixa as produções do servidor
+          await baixarProducoesDoServidor();
+
+          // 7. Baixa as aplicações do servidor
+          await baixarAplicacoesDoServidor();
+        } finally {
+          setCarregando(false);
+        }
+      };
+
+      carregarTalhoes();
     }, []),
   );
 
   //deletar talhao
+
   const deletarTalhao = async (id: string) => {
     try {
-      await db.runAsync(`DELETE FROM producoes WHERE talhao_id = ?`, id);
-      await db.runAsync(`DELETE FROM talhoes WHERE _id = ?`, id);
-    } catch (err) {
-      console.log(err);
-    }
+      // Verifica se o talhão já foi sincronizado com o servidor.
+      const talhao = await db.getFirstAsync<{
+        sincronizado: number;
+        usuario_id: string;
+      }>("SELECT sincronizado, usuario_id FROM talhoes WHERE _id = ?", id);
 
-    await buscarTalhoes();
+      if (Number(talhao?.sincronizado) === 1 && talhao?.usuario_id) {
+        await db.runAsync(
+          `INSERT OR IGNORE INTO talhoes_excluidos
+     (talhao_id, usuario_id)
+     VALUES (?, ?)`,
+          id,
+          talhao.usuario_id,
+        );
+      }
+
+      await db.runAsync("DELETE FROM aplicacoes WHERE talhao_id = ?", id);
+
+      await db.runAsync("DELETE FROM producoes WHERE talhao_id = ?", id);
+
+      await db.runAsync("DELETE FROM talhoes WHERE _id = ?", id);
+
+      await buscarTalhoes();
+
+      Alert.alert("Sucesso", "Talhão excluído com sucesso.");
+    } catch (err) {
+      console.error("Erro ao excluir talhão:", err);
+
+      Alert.alert(
+        "Erro",
+        "Não foi possível excluir o talhão. Verifique sua conexão e tente novamente.",
+      );
+    }
   };
 
   const router = useRouter();
   return (
-    <ScrollView style={styles.container}>
+    <Screen scroll>
       <View style={styles.list}>
-        <View style={styles.header}>
-          <Image
-            source={require("@/assets/talhao2.png")}
-            style={[styles.icon, { justifyContent: "center" }]}
-          />
-          <Text style={styles.title}>Talhões</Text>
-        </View>
+        <ScreenHeader
+          title="Talhões"
+          subtitle="Cadastre, abra e acompanhe cada área"
+          icon={require("@/assets/talhao2.png")}
+        />
 
-        {talhoes.length === 0 && (
-          <Text style={{ marginTop: 60, color: "#555555" }}>
-            Nenhum talhão adicionado
-          </Text>
-        )}
-        <Button
+        <AppButton
           title="Cadastrar talhão"
-          color={Colors.green}
           onPress={() => {
             router.push("/addTalhaoRoute");
           }}
-        ></Button>
-        <FlatList
-          scrollEnabled={false}
-          data={talhoes}
-          keyExtractor={(item) => item._id.toString()}
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <Text style={styles.projeto}>{item.projetoTalhao}</Text>
-              <Text style={styles.info}>Talhão: {item.numeroTalhao}</Text>
-              <Text style={styles.info}>Área: {item.areaTalhao} Há</Text>
-              <Text
-                style={[
-                  styles.info,
-                  {
-                    color: item.status === "Concluído" ? "#4ca200" : "#e91515",
-                  },
-                ]}
-              >
-                Status: {item.status}
-              </Text>
-              <View style={styles.actions}>
-                <Button
-                  color="#2E7D32"
-                  title="Abrir"
-                  onPress={() =>
-                    router.push({
-                      pathname: "/adminTalhaoRoute",
-                      params: { id: item._id },
-                    })
-                  }
-                ></Button>
-                <Button
-                  color="#D32F2F"
-                  title="Deletar"
-                  onPress={() => deletarTalhao(item._id)}
-                ></Button>
-              </View>
-            </View>
-          )}
-        ></FlatList>
+        />
+
+        {carregando ? (
+          <LoadingState message="Carregando talhões..." />
+        ) : talhoes.length === 0 ? (
+          <EmptyState
+            title="Nenhum talhão adicionado"
+            description="Cadastre o primeiro talhão para começar o controle da operação."
+            icon="map-outline"
+          />
+        ) : (
+          <FlatList
+            scrollEnabled={false}
+            data={talhoes}
+            keyExtractor={(item) => item._id.toString()}
+            renderItem={({ item }) => (
+              <Card style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.projeto}>{item.projetoTalhao}</Text>
+                  <StatusBadge
+                    label={item.status}
+                    color={
+                      item.status === "Concluído" ? Colors.success : Colors.warning
+                    }
+                  />
+                </View>
+                <Text style={styles.info}>Talhão: {item.numeroTalhao}</Text>
+                <Text style={styles.info}>Área: {item.areaTalhao} Há</Text>
+                <View style={styles.actions}>
+                  <AppButton
+                    size="sm"
+                    style={styles.actionButton}
+                    title="Abrir"
+                    onPress={() =>
+                      router.push({
+                        pathname: "/adminTalhaoRoute",
+                        params: { id: item._id },
+                      })
+                    }
+                  />
+                  <AppButton
+                    size="sm"
+                    variant="danger"
+                    style={styles.actionButton}
+                    title="Deletar"
+                    onPress={() => deletarTalhao(item._id)}
+                  />
+                </View>
+              </Card>
+            )}
+          />
+        )}
       </View>
-    </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 10,
-    marginTop: 50,
-  },
-
-  header: {
-    alignItems: "center",
-  },
-
-  icon: {
-    width: 25,
-    height: 25,
-    resizeMode: "contain",
-  },
-
   list: {
     flex: 1,
     marginBottom: 30,
+    gap: Spacing.md,
   },
-
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: Colors.primary,
-    textAlign: "center",
-    marginVertical: 20,
-  },
-
   card: {
-    backgroundColor: "#FFF",
-    padding: 16,
-    borderRadius: 16,
-    marginTop: 12,
-
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-
-    elevation: 3,
+    marginTop: Spacing.md,
   },
-
-  projeto: {
-    fontSize: 18,
-    fontWeight: "900",
-    color: "#2E7D32",
-    marginBottom: 8,
-  },
-
-  info: {
-    fontSize: 15,
-    color: "#555",
-    marginBottom: 4,
-    fontWeight: "bold",
-  },
-
-  actions: {
+  cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  projeto: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: "800",
+    color: Colors.primary,
+  },
+  info: {
+    fontSize: 14,
+    color: Colors.textMuted,
+    marginBottom: 4,
+    fontWeight: "600",
+  },
+  actions: {
+    flexDirection: "row",
+    gap: Spacing.sm,
     marginTop: 12,
+  },
+  actionButton: {
+    flex: 1,
   },
 });

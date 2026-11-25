@@ -1,4 +1,4 @@
-# 🌱 AgroAZ
+# 🌱 AgroMap
 
 Aplicativo mobile para **gerenciamento de talhões e operações agrícolas**, desenvolvido com React Native e Expo.
 

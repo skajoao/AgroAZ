@@ -1,164 +1,179 @@
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
-  Button,
+  Alert,
   FlatList,
-  ScrollView,
   StyleSheet,
   Text,
   View,
-  Image
 } from "react-native";
 
 import { db } from "@/database/database";
 
-import { Colors } from "@/constants/theme";
+import { Colors, Spacing } from "@/constants/theme";
+
+import { sincronizarInsumosPendentes } from "@/services/sincronizarInsumos";
+
+import { baixarInsumosDoServidor } from "@/services/baixarInsumosDoServidor";
+
+import { sincronizarInsumosExcluidos } from "@/services/sincronizarInsumosExcluidos";
+import AppButton from "@/components/ui/AppButton";
+import Card from "@/components/ui/Card";
+import EmptyState from "@/components/ui/EmptyState";
+import LoadingState from "@/components/ui/LoadingState";
+import Screen from "@/components/ui/Screen";
+import ScreenHeader from "@/components/ui/ScreenHeader";
 
 export default function ListInsumos() {
   const [insumos, setInsumos] = useState<any[]>([]);
+  const [carregando, setCarregando] = useState(true);
 
-  const buscarInsumos = async () => {
-    const data = await db.getAllAsync(`SELECT * FROM insumos`);
+  const buscarInsumos = useCallback(async () => {
+    try {
+      setCarregando(true);
+      // Envia os insumos locais pendentes.
+      await sincronizarInsumosPendentes();
 
-    setInsumos(data);
+      // Baixa os insumos cadastrados no servidor.
+      await baixarInsumosDoServidor();
 
-    //API
-    /*try {
-      const response = await fetch(
-        `http://${process.env.EXPO_PUBLIC_MYIP}:3000/apiDrone/insumos`
+      // Atualiza a lista exibida.
+      const data = await db.getAllAsync(
+        "SELECT * FROM insumos ORDER BY nomeIns ASC",
       );
 
-      const data = await response.json();
       setInsumos(data);
-    } catch (err) {
-      console.log("erro ao buscar", err);
-    }*/
-  };
+    } catch (erro) {
+      console.error("Erro ao buscar insumos:", erro);
+    } finally {
+      setCarregando(false);
+    }
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
-      buscarInsumos();
-    }, []),
+      const carregar = async () => {
+        await sincronizarInsumosExcluidos();
+        await buscarInsumos();
+      };
+
+      carregar();
+    }, [buscarInsumos]),
   );
 
   //deletar insumo
+
   const deletarInsumo = async (id: string) => {
     try {
-      await db.runAsync(`DELETE FROM insumos WHERE _id = ? `, id);
-    } catch (err) {
-      console.log(err);
+      const insumo = await db.getFirstAsync<{
+        sincronizado: number;
+        usuario_id: string;
+      }>("SELECT sincronizado, usuario_id FROM insumos WHERE _id = ?", id);
+
+      if (Number(insumo?.sincronizado) === 1 && insumo?.usuario_id) {
+        await db.runAsync(
+          `INSERT OR IGNORE INTO insumos_excluidos(insumo_id, usuario_id) VALUES (?, ?)`,
+          id,
+          insumo.usuario_id,
+        );
+      }
+
+      await db.runAsync("DELETE FROM insumos WHERE _id = ?", id);
+
+      const teste = await db.getFirstAsync(
+        "SELECT * FROM insumos WHERE _id = ?",
+        id,
+      );
+
+      console.log("Insumo após exclusão:", teste);
+
+      await buscarInsumos();
+
+      Alert.alert("Sucesso", "Insumo excluído com sucesso.");
+    } catch (erro) {
+      console.error("Erro ao excluir insumo:", erro);
+
+      Alert.alert(
+        "Erro",
+        "Não foi possível excluir o insumo. Verifique sua conexão e tente novamente.",
+      );
     }
-    await buscarInsumos();
   };
 
   const router = useRouter();
 
   return (
-    <ScrollView style={styles.container}>
+    <Screen scroll>
       <View style={styles.list}>
-        <View style={styles.header}>
-          <Image source={require("@/assets/insumos.png")} style={styles.icon}/>
-          <Text style={styles.title}>Insumos</Text>
-        </View>
-        {insumos.length === 0 && (
-          <View>
-            <Text style={{ marginTop: 60, color: "#555555" }}>
-              Nenhum insumo cadastrado
-            </Text>
-          </View>
-        )}
-        <Button
+        <ScreenHeader
+          title="Insumos"
+          subtitle="Produtos utilizados nas aplicações"
+          icon={require("@/assets/insumos.png")}
+        />
+
+        <AppButton
           title="Cadastrar Insumo"
-          color={Colors.green}
           onPress={() => {
             router.push("/addInsumoRoute");
           }}
-        ></Button>
-        <FlatList
-          scrollEnabled={false}
-          data={insumos}
-          keyExtractor={(item) => item._id.toString()}
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <Text style={styles.nome}>{item.nomeIns}</Text>
-              <Text style={styles.info}>{item.tipoIns}</Text>
-              <Text style={styles.info}>{item.recomendIns} Kg/L Há</Text>
-              <View style={styles.actions}>
-                <Button
-                  title="Deletar"
-                  color="#D32F2F"
-                  onPress={() => deletarInsumo(item._id)}
-                ></Button>
-              </View>
-            </View>
-          )}
-        ></FlatList>
+        />
+
+        {carregando ? (
+          <LoadingState message="Carregando insumos..." />
+        ) : insumos.length === 0 ? (
+          <EmptyState
+            title="Nenhum insumo cadastrado"
+            description="Cadastre os produtos para registrá-los nas produções."
+            icon="flask-outline"
+          />
+        ) : (
+          <FlatList
+            scrollEnabled={false}
+            data={insumos}
+            keyExtractor={(item) => item._id.toString()}
+            renderItem={({ item }) => (
+              <Card style={styles.card}>
+                <Text style={styles.nome}>{item.nomeIns}</Text>
+                <Text style={styles.info}>{item.tipoIns}</Text>
+                <Text style={styles.info}>{item.recomendIns} Kg/L Há</Text>
+                <View style={styles.actions}>
+                  <AppButton
+                    size="sm"
+                    variant="danger"
+                    title="Deletar"
+                    onPress={() => deletarInsumo(item._id)}
+                  />
+                </View>
+              </Card>
+            )}
+          />
+        )}
       </View>
-    </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 10,
-    marginTop: 50,
-  },
-
   list: {
     flex: 1,
-    marginBottom:30
+    marginBottom: 30,
+    gap: Spacing.md,
   },
-
-  header:{
-    alignItems:"center"
-  },
-
-  icon: {
-    width: 25,
-    height: 25,
-    resizeMode: "contain",
-  },
-
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: Colors.primary,
-    textAlign: "center",
-    marginVertical: 20,
-  },
-
   card: {
-    backgroundColor: "#FFF",
-    padding: 16,
-    borderRadius: 16,
-    marginTop: 12,
-
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-
-    elevation: 3,
+    marginTop: Spacing.md,
   },
-
-  nome:{
+  nome: {
     fontSize: 18,
-    fontWeight: "900",
-    color: "#2E7D32",
+    fontWeight: "800",
+    color: Colors.primary,
     marginBottom: 8,
   },
-
   info: {
-    fontSize: 15,
-    color: "#555",
+    fontSize: 14,
+    color: Colors.textMuted,
     marginBottom: 4,
-    fontWeight: "bold",
+    fontWeight: "600",
   },
-
   actions: {
     flexDirection: "row",
     justifyContent: "flex-end",

@@ -3,7 +3,6 @@ import {
   FlatList,
   Image,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -13,20 +12,81 @@ import * as SecureStore from "expo-secure-store";
 
 import { db, initDatabase } from "../database/database";
 
-import { Colors } from "@/constants/theme";
+import { Colors, Spacing } from "@/constants/theme";
 import { useCallback, useEffect, useState } from "react";
 
 import Logout from "@/components/Logout";
 
+import { sincronizarTalhoesPendentes } from "@/services/sincronizarTalhoes";
+
+import { baixarTalhoesDoServidor } from "@/services/baixarTalhoesDoServidor";
+
+import { sincronizarTalhoesExcluidos } from "@/services/sincronizarTalhoesExcluidos";
+
+import { baixarProducoesDoServidor } from "@/services/baixarProducoesDoServidor";
+
+import Card from "@/components/ui/Card";
+import EmptyState from "@/components/ui/EmptyState";
+import LoadingState from "@/components/ui/LoadingState";
+import Screen from "@/components/ui/Screen";
+import ScreenHeader from "@/components/ui/ScreenHeader";
+import StatTile from "@/components/ui/StatTile";
+import { baixarAplicacoesDoServidor } from "@/services/baixarAplicacoesDoServidor";
+
 export default function Dashboard() {
   const router = useRouter();
-
+  const [usuario, setUsuario] = useState<any>(null);
+  const [nomeUsuario, setNomeUsuario] = useState<string>("");
   const [talhoes, setTalhoes] = useState<any[]>([]);
   const [aplicacoes, setAplicacoes] = useState<any[]>([]);
   const [talhoesConcluidos, setTalhoesConcluidos] = useState<any[]>([]);
   const [areaTotal, setAreaTotal] = useState<Number>(0);
   const [areaConcluida, setAreaConcluida] = useState<Number>(0);
   const [mostrarTodas, setMostrarTodas] = useState(false);
+  const [carregando, setCarregando] = useState(true);
+
+  const verificarSessao = async () => {
+    try {
+      const token = await SecureStore.getItemAsync("token");
+
+      if (!token) {
+        router.replace("/login");
+        return;
+      }
+
+      const response = await fetch(
+        `http://${process.env.EXPO_PUBLIC_MYIP}:3000/auth/me`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      if (response.status === 401 || response.status === 403) {
+        await SecureStore.deleteItemAsync("token");
+        router.replace("/login");
+        return;
+      }
+
+      if (!response.ok) {
+        console.error("Erro ao validar sessão:", response.status);
+        return;
+      }
+
+      const data = await response.json();
+      setUsuario(data.usuario ?? data);
+      setNomeUsuario(data.usuario.nome)
+      console.log("Usuário autenticado:", data.usuario);
+    } catch (err) {
+      console.error("Erro ao verificar sessão:", err);
+    }
+  };
+
+  useEffect(() => {
+    verificarSessao();
+  }, []);
 
   const handleLogout = async () => {
     await SecureStore.deleteItemAsync("token");
@@ -53,7 +113,36 @@ export default function Dashboard() {
 
   useFocusEffect(
     useCallback(() => {
-      buscarTalhoes();
+      const carregarTalhoes = async () => {
+        setCarregando(true);
+
+        try {
+          // 1. Mostra os dados disponíveis localmente
+          await buscarTalhoes();
+
+          // 2. Envia as exclusões pendentes ao servidor
+          await sincronizarTalhoesExcluidos();
+
+          // 3. Envia os talhões pendentes ao servidor
+          await sincronizarTalhoesPendentes();
+
+          // 4. Baixa os talhões que estão no servidor
+          await baixarTalhoesDoServidor();
+
+          // 5. Atualiza a tela
+          await buscarTalhoes();
+
+          // 6. Baixa as produções do servidor
+          await baixarProducoesDoServidor();
+
+          // 7. Baixa as aplicações do servidor
+          await baixarAplicacoesDoServidor();
+        } finally {
+          setCarregando(false);
+        }
+      };
+
+      carregarTalhoes();
     }, []),
   );
 
@@ -150,19 +239,16 @@ export default function Dashboard() {
   );
 
   return (
-    <ScrollView>
+    <Screen scroll>
       <View style={styles.dashboardContainer}>
-        <View style={styles.header}>
-          <Logout onPress={handleLogout} />
-          <View style={styles.titleContainer}>
-            <Image
-              source={require("@/assets/dashboard.png")}
-              style={styles.icon}
-            />
-            <Text style={styles.title}>Olá piloto!</Text>
-          </View>
-        </View>
-        <View style={styles.resumoGeral}>
+        <ScreenHeader
+          title={usuario?.nome ? `Olá, ${nomeUsuario}!` : "Olá Aplicador!"}
+          subtitle="Acompanhe a operação dos talhões"
+          icon={require("@/assets/dashboard.png")}
+          right={<Logout onPress={handleLogout} />}
+        />
+
+        <Card style={styles.sectionCard}>
           <View style={styles.sectionTitleContainer}>
             <Image
               source={require("@/assets/resumo.png")}
@@ -170,90 +256,31 @@ export default function Dashboard() {
             />
             <Text style={styles.sectionTitle}>Resumo geral</Text>
           </View>
-          <View style={styles.sectionContentContainer}>
-            <View style={styles.sectionResumoContentContainer}>
-              <View
-                style={[
-                  styles.sectionResumoItemContainer,
-                  { borderRightWidth: 1 },
-                ]}
-              >
-                <View style={styles.sectionResumoItemIcon}>
-                  <Image
-                    source={require("@/assets/talhao2.png")}
-                    style={styles.icon}
-                  />
-                </View>
-                <View style={styles.sectionResumoItemText}>
-                  <Text style={styles.text}>Talhôes</Text>
-                </View>
-                <View style={styles.sectionResumoItemResult}>
-                  <Text>{talhoes.length}</Text>
-                </View>
-              </View>
-              <View
-                style={[
-                  styles.sectionResumoItemContainer,
-                  { borderLeftWidth: 1 },
-                ]}
-              >
-                <View style={styles.sectionResumoItemIcon}>
-                  <Image
-                    source={require("@/assets/concluido.png")}
-                    style={styles.icon}
-                  />
-                </View>
-                <View style={styles.sectionResumoItemText}>
-                  <Text style={styles.text}>Concluídos</Text>
-                </View>
-                <View style={styles.sectionResumoItemResult}>
-                  <Text>{talhoesConcluidos.length}</Text>
-                </View>
-              </View>
-            </View>
-            <View style={styles.sectionResumoContentContainer}>
-              <View
-                style={[
-                  styles.sectionResumoItemContainer,
-                  { borderTopWidth: 1, borderRightWidth: 1 },
-                ]}
-              >
-                <View style={styles.sectionResumoItemIcon}>
-                  <Image
-                    source={require("@/assets/areaTalhao.png")}
-                    style={styles.icon}
-                  />
-                </View>
-                <View style={styles.sectionResumoItemText}>
-                  <Text style={styles.text}>Área total</Text>
-                </View>
-                <View style={styles.sectionResumoItemResult}>
-                  <Text>{areaTotal.toFixed(2)} há</Text>
-                </View>
-              </View>
-              <View
-                style={[
-                  styles.sectionResumoItemContainer,
-                  { borderLeftWidth: 1, borderTopWidth: 1 },
-                ]}
-              >
-                <View style={styles.sectionResumoItemIcon}>
-                  <Image
-                    source={require("@/assets/concluido2.png")}
-                    style={styles.icon}
-                  />
-                </View>
-                <View style={styles.sectionResumoItemText}>
-                  <Text style={styles.text}>Área concluída</Text>
-                </View>
-                <View style={styles.sectionResumoItemResult}>
-                  <Text>{areaConcluida.toFixed(2)} há</Text>
-                </View>
-              </View>
-            </View>
+          <View style={styles.sectionResumoContentContainer}>
+            <StatTile
+              label="Talhôes"
+              value={talhoes.length}
+              icon={require("@/assets/talhao2.png")}
+            />
+            <StatTile
+              label="Concluídos"
+              value={talhoesConcluidos.length}
+              icon={require("@/assets/concluido.png")}
+            />
+            <StatTile
+              label="Área total"
+              value={`${areaTotal.toFixed(2)} há`}
+              icon={require("@/assets/areaTalhao.png")}
+            />
+            <StatTile
+              label="Área concluída"
+              value={`${areaConcluida.toFixed(2)} há`}
+              icon={require("@/assets/concluido2.png")}
+            />
           </View>
-        </View>
-        <View style={styles.aplicacoesRecentes}>
+        </Card>
+
+        <Card style={styles.sectionCard}>
           <View style={styles.sectionTitleContainer}>
             <Image
               source={require("@/assets/recentes.png")}
@@ -261,213 +288,114 @@ export default function Dashboard() {
             />
             <Text style={styles.sectionTitle}>Aplicações recentes</Text>
           </View>
-          <View>
-            <View style={styles.historicoProd}>
-              {aplicacoes.length > 0 ? (
-                <FlatList
-                  scrollEnabled={false}
-                  data={mostrarTodas ? aplicacoes : aplicacoes.slice(0, 3)}
-                  keyExtractor={(item) => item._id.toString()}
-                  renderItem={({ item }) => (
-                    <View style={styles.cardProducoes}>
-                      <Text style={styles.data}>{item.dataProducao}</Text>
-                      <Text>Projeto: {item.projetoTalhao}</Text>
-                      <Text>Talhão: {item.numeroTalhao}</Text>
-                      <Text>Insumos: {item.insumos || "Nenhum"}</Text>
-                      <Text style={styles.areaProduzida}>
-                        {item.areaProduzida} Há
-                      </Text>
-                    </View>
-                  )}
-                />
-              ) : (
-                <Text>Não há produções</Text>
-              )}
-              {aplicacoes.length > 3 && (
-                <Pressable
-                  onPress={() => {
-                    setMostrarTodas(!mostrarTodas);
-                  }}
-                  style={styles.mostrarTodasButton}
-                >
-                  <Text style={styles.mostrarTodasText}>
-                    {mostrarTodas ? "Mostrar menos" : "Mostrar todas"}
-                  </Text>
-                </Pressable>
-              )}
-            </View>
+          <View style={styles.historicoProd}>
+            {carregando && aplicacoes.length === 0 ? (
+              <LoadingState message="Atualizando aplicações..." />
+            ) : aplicacoes.length > 0 ? (
+              <FlatList
+                scrollEnabled={false}
+                data={mostrarTodas ? aplicacoes : aplicacoes.slice(0, 3)}
+                keyExtractor={(item) => item._id.toString()}
+                renderItem={({ item }) => (
+                  <View style={styles.cardProducoes}>
+                    <Text style={styles.data}>{item.dataProducao}</Text>
+                    <Text style={styles.info}>
+                      Projeto: {item.projetoTalhao}
+                    </Text>
+                    <Text style={styles.info}>Talhão: {item.numeroTalhao}</Text>
+                    <Text style={styles.info}>
+                      Insumos: {item.insumos || "Nenhum"}
+                    </Text>
+                    <Text style={styles.areaProduzida}>
+                      {item.areaProduzida} Há
+                    </Text>
+                  </View>
+                )}
+              />
+            ) : (
+              <EmptyState
+                title="Não há produções"
+                description="As aplicações recentes aparecerão aqui."
+                icon="analytics-outline"
+              />
+            )}
+            {aplicacoes.length > 3 && (
+              <Pressable
+                onPress={() => {
+                  setMostrarTodas(!mostrarTodas);
+                }}
+                style={styles.mostrarTodasButton}
+              >
+                <Text style={styles.mostrarTodasText}>
+                  {mostrarTodas ? "Mostrar menos" : "Mostrar todas"}
+                </Text>
+              </Pressable>
+            )}
           </View>
-        </View>
+        </Card>
       </View>
-    </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   dashboardContainer: {
     flex: 1,
-    padding: 10,
+    gap: Spacing.md,
   },
-
-  header: {
-    marginTop: 15,
+  sectionCard: {
+    marginBottom: Spacing.sm,
   },
-
-  text: {
-    textAlign: "center",
-  },
-
-  titleContainer: {
-    backgroundColor: Colors.secondary,
-    alignItems: "center",
-    borderRadius: 16,
-    padding: 10,
-    marginTop: 12,
-    marginBottom: 12,
-
-    shadowColor: "#8a5353",
-    shadowOffset: {
-      width: 0,
-      height: 5,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 10,
-  },
-
-  title: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: Colors.primary,
-    textAlign: "center",
-  },
-
-  resumoGeral: {
-    backgroundColor: Colors.background,
-    padding: 15,
-    borderRadius: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: Colors.secondary,
-    shadowColor: "#9e2d2d",
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-
-  aplicacoesRecentes: {
-    backgroundColor: Colors.background,
-    padding: 15,
-    borderRadius: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: Colors.secondary,
-    shadowColor: "#9e2d2d",
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-
-  sectionContentContainer: {
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-
   sectionResumoContentContainer: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
+    flexWrap: "wrap",
+    gap: Spacing.sm,
   },
-
-  sectionResumoItemContainer: {
-    width: 120,
-    flexDirection: "column",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 10,
-    padding: 5,
-  },
-
-  sectionResumoItemIcon: {},
-
-  sectionResumoItemText: {},
-
-  sectionResumoItemResult: {},
-
-  card: {
-    backgroundColor: "#FFF",
-    padding: 16,
-    borderRadius: 16,
-    marginTop: 12,
-
-    shadowColor: "#8a5353",
-    shadowOffset: {
-      width: 0,
-      height: 5,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-
-    elevation: 10,
-  },
-
   historicoProd: {},
-
   cardProducoes: {
-    backgroundColor: "#fefefe",
+    backgroundColor: Colors.surfaceMuted,
     padding: 14,
     borderRadius: 14,
     marginTop: 10,
-    borderColor: Colors.greenGray,
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
   },
-
-  resumoConteudo: {},
-
   sectionTitleContainer: {
-    alignItems: "flex-start",
+    alignItems: "center",
     flexDirection: "row",
     gap: 10,
+    marginBottom: Spacing.md,
   },
-
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: 18,
+    fontWeight: "700",
     color: Colors.primary,
-    marginBottom: 10,
   },
-
   icon: {
-    width: 25,
-    height: 25,
+    width: 22,
+    height: 22,
     resizeMode: "contain",
   },
-
   data: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700",
-    color: "#2E7D32",
+    color: Colors.success,
     marginBottom: 6,
   },
-
-  areaProduzida: {
+  info: {
     fontSize: 14,
-    color: "#555",
+    color: Colors.textMuted,
+    marginBottom: 2,
   },
-
+  areaProduzida: {
+    marginTop: 6,
+    fontSize: 14,
+    fontWeight: "700",
+    color: Colors.text,
+  },
   mostrarTodasButton: {
     marginTop: 12,
     padding: 10,
     alignItems: "center",
   },
-
   mostrarTodasText: {
     color: Colors.primary,
     fontWeight: "bold",

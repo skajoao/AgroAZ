@@ -1,49 +1,62 @@
-import { useEffect, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
+import { useEffect, useState } from "react";
+import { View } from "react-native";
+
+import LoadingState from "@/components/ui/LoadingState";
+import { Colors } from "@/constants/theme";
 
 export default function Index() {
   const router = useRouter();
   const [carregando, setCarregando] = useState(true);
-
-  useEffect(() => {
-    verificarAutenticacao();
-  }, []);
 
   const verificarAutenticacao = async () => {
     try {
       const token = await SecureStore.getItemAsync("token");
 
       if (!token) {
-        console.log("token não encontrado")
+        console.log("Token não encontrado");
         router.replace("/login");
         return;
       }
 
-      const response = await fetch(`http://${process.env.EXPO_PUBLIC_MYIP}:3000/auth/me`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      try {
+        const response = await fetch(
+          `http://${process.env.EXPO_PUBLIC_MYIP}:3000/auth/me`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
 
-      if (response.ok) {
-        console.log("token valido")
+        if (response.status === 401 || response.status === 403) {
+          console.log("Token inválido ou expirado");
+
+          await SecureStore.deleteItemAsync("token");
+          router.replace("/login");
+          return;
+        }
+
+        console.log("Servidor disponível ou sessão mantida");
         router.replace("/(tabs)");
-      } else {
-        console.log("token invalido")
-        await SecureStore.deleteItemAsync("token");
-        router.replace("/login");
+      } catch (error) {
+        console.log("Servidor indisponível. Entrando no modo offline.");
+
+        router.replace("/(tabs)");
       }
     } catch (error) {
       console.error("Erro ao verificar autenticação:", error);
-
       router.replace("/login");
     } finally {
       setCarregando(false);
     }
   };
+
+  useEffect(() => {
+    verificarAutenticacao();
+  }, []);
 
   if (carregando) {
     return (
@@ -52,9 +65,10 @@ export default function Index() {
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
+          backgroundColor: Colors.background,
         }}
       >
-        <ActivityIndicator size="large" />
+        <LoadingState message="Preparando o Talhão360..." />
       </View>
     );
   }

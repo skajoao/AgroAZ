@@ -1,14 +1,15 @@
-import { View, StyleSheet } from "react-native";
+import { Colors, Spacing } from "@/constants/theme";
+import { StyleSheet, View } from "react-native";
 
 export default function Division() {
-  return <View style={styles.division}></View>;
+  return <View style={styles.division} />;
 }
 
 const styles = StyleSheet.create({
   division: {
-    borderWidth: 2,
-    marginTop: 10,
-    marginBottom: 10,
-    borderColor: "#ddd9d9"
+    height: 1,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.md,
+    backgroundColor: Colors.border,
   },
 });

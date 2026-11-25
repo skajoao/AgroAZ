@@ -1,14 +1,19 @@
+import { Colors, Radius } from "@/constants/theme";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { Pressable, StyleSheet, View, Text,Image } from "react-native";
-
-import { Colors } from "@/constants/theme";
+import { Pressable, StyleSheet, View } from "react-native";
 
 export default function Back() {
   const router = useRouter();
   return (
     <View style={styles.navigation}>
-      <Pressable onPress={() => router.back()} style={styles.button}>
-        <Text style={styles.buttonText}><Image source={require("@/assets/voltar.png")} style={styles.icon}/></Text>
+      <Pressable
+        onPress={() => router.back()}
+        style={({ pressed }) => [styles.button, pressed && styles.pressed]}
+        accessibilityRole="button"
+        accessibilityLabel="Voltar"
+      >
+        <Ionicons name="chevron-back" size={22} color={Colors.primary} />
       </Pressable>
     </View>
   );
@@ -17,28 +22,18 @@ export default function Back() {
 const styles = StyleSheet.create({
   navigation: {
     justifyContent: "flex-start",
-    marginTop: 20,
-    width: 90,
   },
-
   button: {
-    backgroundColor: Colors.background,
-    borderColor: Colors.primary,
-    height:30,
-    borderWidth:1,
-    borderRadius: 10,
+    backgroundColor: Colors.surface,
+    borderColor: Colors.border,
+    height: 40,
+    width: 40,
+    borderWidth: 1,
+    borderRadius: Radius.md,
     alignItems: "center",
-    justifyContent: "center"
+    justifyContent: "center",
   },
-
-  buttonText: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
-
-  icon: {
-    width: 18,
-    height: 18,
-    resizeMode: "contain",
+  pressed: {
+    opacity: 0.8,
   },
 });
