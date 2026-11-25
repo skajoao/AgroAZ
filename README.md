@@ -1,23 +1,26 @@
-# 🌱 AgroMap
+# 🌱 Talhão360
 
-Aplicativo mobile para **gerenciamento de talhões e operações agrícolas**, desenvolvido com React Native e Expo.
+Aplicativo mobile para **gerenciamento de talhões e operações agrícolas**, desenvolvido com React Native, Expo e TypeScript.
 
 ## 📱 Sobre o projeto
 
-O **AgroAZ** foi desenvolvido para facilitar o acompanhamento das operações realizadas em talhões agrícolas, permitindo registrar informações sobre áreas, insumos, aplicações e produção.
+O **Talhão360** é um aplicativo desenvolvido para facilitar o gerenciamento e o acompanhamento de operações agrícolas, permitindo o controle de talhões, insumos, aplicações e produção.
 
-Esta é a **primeira versão funcional** do projeto.
+O projeto utiliza uma arquitetura **Offline First**, permitindo que o usuário continue utilizando as principais funcionalidades mesmo sem conexão com a internet, sincronizando os dados com o servidor quando a conexão estiver disponível.
 
 ## 🚀 Funcionalidades
 
-* 🌱 Cadastro e gerenciamento de talhões
-* 📐 Controle da área cadastrada
-* 📊 Controle de área produzida e área restante
-* 🧪 Gerenciamento de insumos
-* 🚁 Registro de aplicações de insumos
-* 📋 Histórico de produções
-* ✅ Atualização automática do status dos talhões
-* 💾 Armazenamento local dos dados com SQLite
+- 🌱 Cadastro e gerenciamento de talhões
+- 📐 Controle de área dos talhões
+- 📊 Acompanhamento de área produzida e área restante
+- 🧪 Cadastro e gerenciamento de insumos
+- 🚁 Registro de aplicações de insumos
+- 📋 Histórico de produções
+- ✅ Atualização automática do status dos talhões
+- 📶 Funcionamento offline (Offline First)
+- 🔄 Sincronização de dados com o servidor
+- 🔐 Autenticação de usuários
+- 💾 Armazenamento local com SQLite
 
 ## 📸 Screenshots
 
@@ -35,19 +38,38 @@ Esta é a **primeira versão funcional** do projeto.
 
 ## 🛠️ Tecnologias utilizadas
 
-* **React Native**
-* **Expo**
-* **TypeScript**
-* **SQLite**
-* **Expo Router**
+### Frontend
+- React Native
+- Expo
+- TypeScript
+- Expo Router
+- SQLite
+
+### Backend
+- Node.js
+- Express
+- MySQL
+- Sequelize
+- JWT (JSON Web Token)
+- Bcrypt
+
+## 🏗️ Arquitetura
+
+O aplicativo utiliza uma arquitetura Offline First:
+
+- **SQLite:** armazenamento local dos dados no dispositivo.
+- **API REST:** comunicação entre o aplicativo e o servidor.
+- **MySQL:** armazenamento persistente dos dados na nuvem.
+- **Sincronização:** envio e recebimento de informações entre o banco local e o servidor.
+
+Essa abordagem permite maior disponibilidade do aplicativo, mesmo em ambientes rurais com conexão limitada ou inexistente.
 
 ## 💾 Banco de dados
 
-O aplicativo utiliza **SQLite** para armazenamento local dos dados.
-
-Principais tabelas:
+Principais tabelas utilizadas:
 
 ```text
+usuarios
 talhoes
 insumos
 aplicacoes
@@ -56,16 +78,14 @@ producoes
 
 ## 🎯 Objetivo
 
-O projeto tem como objetivo colocar em prática conhecimentos adquiridos durante minha formação em **Engenharia de Software**, explorando desenvolvimento mobile, persistência de dados, organização de componentes e construção de interfaces.
+O Talhão360 tem como objetivo aplicar conhecimentos adquiridos durante minha formação em Engenharia de Software, explorando desenvolvimento mobile, desenvolvimento de APIs, bancos de dados relacionais, autenticação, sincronização de dados e construção de interfaces.
 
-O AgroAZ continuará recebendo melhorias e novas funcionalidades conforme o desenvolvimento do projeto avançar.
+O projeto está em constante evolução, recebendo melhorias e novas funcionalidades.
 
 ## 👨‍💻 Desenvolvedor
 
 **João Vitor Gonçalves**
 
-Projeto desenvolvido para fins de aprendizado e desenvolvimento profissional.
+Desenvolvido como projeto de aprendizado e desenvolvimento profissional.
 
 ---
-
-⭐ Se você gostou do projeto, considere deixar uma estrela no repositório.

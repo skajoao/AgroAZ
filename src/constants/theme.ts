@@ -11,7 +11,7 @@ const palette = {
   border: "#D5DDD2",
   danger: "#C62828",
   success: "#2E7D32",
-  warning: "#E65100",
+  warning: "#b65252",
   green: "#5B8C3E",
   greenGray: "#8d9995",
 };
