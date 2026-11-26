@@ -82,6 +82,15 @@ O Talhão360 tem como objetivo aplicar conhecimentos adquiridos durante minha fo
 
 O projeto está em constante evolução, recebendo melhorias e novas funcionalidades.
 
+https://github.com/skajoao/Talhao360/releases/tag/v1.0.0
+## 📱 Download
+
+Baixe a versão mais recente do Talhão360 para Android:
+
+[⬇️ Baixar APK – Talhão360](https://github.com/skajoao/Talhao360/releases/tag/v1.0.0)
+
+> ⚠️ O aplicativo está em fase de testes. Para instalar, pode ser necessário permitir a instalação de aplicativos de fontes desconhecidas no Android.
+
 ## 👨‍💻 Desenvolvedor
 
 **João Vitor Gonçalves**
