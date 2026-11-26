@@ -56,7 +56,7 @@ export default function AdminTalhao() {
     if (!token) return;
 
     const response = await fetch(
-      `http://${process.env.EXPO_PUBLIC_MYIP}:3000/auth/me`,
+      `${process.env.EXPO_PUBLIC_API}/auth/me`,
       {
         headers: {
           Authorization: `Bearer ${token}`,

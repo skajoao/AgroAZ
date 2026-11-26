@@ -55,7 +55,7 @@ export default function Dashboard() {
       }
 
       const response = await fetch(
-        `http://${process.env.EXPO_PUBLIC_MYIP}:3000/auth/me`,
+        `${process.env.EXPO_PUBLIC_API}/auth/me`,
         {
           method: "GET",
           headers: {
@@ -78,7 +78,6 @@ export default function Dashboard() {
       const data = await response.json();
       setUsuario(data.usuario ?? data);
       setNomeUsuario(data.usuario.nome)
-      console.log("Usuário autenticado:", data.usuario);
     } catch (err) {
       console.error("Erro ao verificar sessão:", err);
     }

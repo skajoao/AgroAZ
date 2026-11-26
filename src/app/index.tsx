@@ -22,7 +22,7 @@ export default function Index() {
 
       try {
         const response = await fetch(
-          `http://${process.env.EXPO_PUBLIC_MYIP}:3000/auth/me`,
+          `${process.env.EXPO_PUBLIC_API}/auth/me`,
           {
             method: "GET",
             headers: {
